@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+*.egg-info/
+build/
+dist/
+.eggs/
+.pytest_cache/
+.pytest_tmp/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit these
+.env
+.envrc
+*.pem
+*.key
+*token*.txt
+*secret*
+*credential*
+
+# Local state
+_codex_state.json
+.codex/
+
+# Heavy data — pipeline outputs and raw inputs stay out of the repo
+Reports/
+Unzipped/
+Zipped/
+Raw/
+Inventory*/
+SpaceWeather/
+External/
+*.parquet
+*.joblib
+*.pkl
+*.npz
+*.h5
+*.gz
+*.zip
+
+# Allowlist: keep tiny test fixtures
+!tests/data/**/*.parquet
+!tests/data/**/*.csv
+!tests/data/**/*.clk
+
+# Logs
+*.log
+Logs/
+tmp/
+tmp_*/
