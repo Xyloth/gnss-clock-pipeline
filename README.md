@@ -49,7 +49,7 @@ GNSS satellite clocks broadcast the timing signals every GPS-equipped device on 
 Sample data ships with the repo (~50 KB). Tests run end-to-end on the fixtures with no internet access.
 
 ```bash
-git clone https://github.com/<you>/gnss-clock-pipeline.git
+git clone https://github.com/Xyloth/gnss-clock-pipeline.git
 cd gnss-clock-pipeline
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
