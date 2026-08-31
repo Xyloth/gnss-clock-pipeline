@@ -28,7 +28,10 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Lint with ruff
-        run: ruff check corr tests
+        run: ruff check corr tests Scripts/render_fixture_proof.py
+
+      - name: Verify recruiter-facing fixture chart
+        run: python Scripts/render_fixture_proof.py --check
 
       - name: Run tests
         run: pytest -v

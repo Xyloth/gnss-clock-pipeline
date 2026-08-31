@@ -1,6 +1,41 @@
 # GNSS Clock Pipeline
 
-End-to-end Python ETL that ingests four satellite constellations (GPS, Galileo, GLONASS, BeiDou) plus five space-weather feeds at 30-second epoch resolution, lands them in a tiered Parquet feature store, and detects satellite clock anomalies through residual-based statistical methods.
+[![CI](https://github.com/Xyloth/gnss-clock-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/Xyloth/gnss-clock-pipeline/actions/workflows/ci.yml)
+[![Python 3.10–3.12](https://img.shields.io/badge/python-3.10%E2%80%933.12-3776AB.svg)](pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-157A7A.svg)](LICENSE)
+
+Production-style Python ETL that turns raw multi-constellation satellite-clock and space-weather feeds into a schema-validated, Hive-partitioned Parquet feature store. The repository preserves 30-second observations, detects residual anomalies, records rerunnable job state, and benchmarks rapid/ultra-rapid products against final clocks.
+
+**[Run the 90-second proof](#90-second-proof)** · **[Inspect the data contracts](docs/schema.md)** · **[Read the negative-result postmortem](docs/results.md)** · **[See CI](https://github.com/Xyloth/gnss-clock-pipeline/actions/workflows/ci.yml)**
+
+## 90-second proof
+
+The committed fixtures are small, deterministic, and offline. They exercise the same parser, benchmark, and validation code as larger runs.
+
+```bash
+git clone https://github.com/Xyloth/gnss-clock-pipeline.git
+cd gnss-clock-pipeline
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+pytest -q
+python Scripts/render_fixture_proof.py --check
+```
+
+That verifies RINEX parsing, rapid/ultra clock adapters, episode construction, canonical Arrow schema normalization, Hive/per-year parity, L6 context joins, and product-to-final benchmark metrics. CI repeats the suite on Python 3.10, 3.11, and 3.12.
+
+![Rapid and ultra-rapid clock RMSE against the bundled final fixture](docs/images/fixture-benchmark.svg)
+
+The figure is regenerated directly from the committed RINEX and Parquet fixtures by [`Scripts/render_fixture_proof.py`](Scripts/render_fixture_proof.py). It is a deterministic pipeline proof, **not an operational accuracy claim**.
+
+### What a reviewer can verify quickly
+
+| Engineering claim | Evidence in this repository |
+| --- | --- |
+| Raw scientific files become typed, queryable data | RINEX `AS` records are parsed into tidy clock Parquet with source, cadence, issue-time, and lead-time metadata. |
+| Corrupt refreshes fail closed | A dedicated CLI asserts exact Arrow schema, cadence, severity rules, and Hive/per-year row parity, then exits non-zero on failure. |
+| Jobs are rerunnable and inspectable | Output validation controls resume/force behavior; bounded JSONL state records inputs, outputs, metrics, and arguments. |
+| The evaluation was not reverse-engineered into a success story | The published model result did not beat the operational baseline; the postmortem names leakage, grain, imbalance, and lead-time limitations. |
 
 ## Architecture
 
@@ -34,30 +69,15 @@ End-to-end Python ETL that ingests four satellite constellations (GPS, Galileo, 
 | Component | Files | Purpose |
 | --- | --- | --- |
 | `corr/` package | 11 modules | Library code: RINEX CLK parsing, episode detection, schema validation, context joins |
-| `Scripts/` | 7 CLI tools | Pipeline entry points — each runs as `python Scripts/<name>.py` with documented flags |
-| `tests/` | 6 test modules + fixtures | Pytest suite with curated <50 KB sample data — pipeline runs end-to-end on `pytest` alone |
-| `docs/` | 4 markdown docs | Architecture, data-quality methodology, schema reference, results |
+| `Scripts/` | 7 pipeline CLIs + proof renderer | Independently runnable stages plus a fixture-backed visualization with a stale-artifact check |
+| `tests/` | 7 test modules + fixtures | Pytest suite with curated <50 KB sample data—pipeline paths run offline on `pytest` alone |
+| `docs/` | 4 technical notes + generated figure | Architecture, data quality, schema, results, and a reproducible first-click visual |
 
 The repo is built around a layered ETL convention (L1 → L2 → L3 → L5 → L6). Each stage has a defined input contract, a Parquet output, and validation logic — see [docs/architecture.md](docs/architecture.md) for details.
 
 ## Why this matters
 
 GNSS satellite clocks broadcast the timing signals every GPS-equipped device on Earth depends on. When a clock drifts or jumps, the error propagates directly into positioning accuracy. The IGS publishes "final" clock corrections at ~2-week latency; the goal of this project was to detect anomalies earlier from rapid (1-day) and ultra-rapid (15-minute) products, using both the clock signal itself and space-weather features that are known to correlate with hardware behavior.
-
-## Quick start
-
-Sample data ships with the repo (~50 KB). Tests run end-to-end on the fixtures with no internet access.
-
-```bash
-git clone https://github.com/Xyloth/gnss-clock-pipeline.git
-cd gnss-clock-pipeline
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-pytest
-```
-
-A successful run exercises the full pipeline against the bundled fixtures: parsing RINEX CLK files, detecting episodes via residual-MAD filtering, normalizing into the canonical Arrow schema, and benchmarking rapid/ultra products against final.
 
 ## Pipeline stages
 
